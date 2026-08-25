@@ -34,18 +34,7 @@ class QRCodeWSKeyManager: ObservableObject {
                 return
             }
             
-            if let fields = httpResponse.allHeaderFields as? [String: String] {
-                let cookies = HTTPCookie.cookies(withResponseHeaderFields: fields, for: url)
-                for c in cookies {
-                    self.cookiesDict[c.name] = c.value
-                    if c.name == "wtoken" || c.name == "qr_token" || c.name == "s_token" || c.name == "token" {
-                        self.token = c.value
-                    }
-                    if c.name == "okl_token" {
-                        self.oklToken = c.value
-                    }
-                }
-            }
+            self.extractCookiesFromResponse(httpResponse, url: url)
             
             DispatchQueue.main.async {
                 if let img = UIImage(data: data) {
@@ -90,22 +79,14 @@ class QRCodeWSKeyManager: ObservableObject {
         URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
             guard let self = self, let data = data, let httpResponse = response as? HTTPURLResponse else { return }
             
-            // 抓取 Response Cookie 中的凭证
-            if let fields = httpResponse.allHeaderFields as? [String: String] {
-                let cookies = HTTPCookie.cookies(withResponseHeaderFields: fields, for: url)
-                for c in cookies {
-                    self.cookiesDict[c.name] = c.value
-                }
-            }
-            
+            self.extractCookiesFromResponse(httpResponse, url: url)
             let resStr = String(data: data, encoding: .utf8) ?? ""
             
             DispatchQueue.main.async {
                 if resStr.contains("\"code\":200") || resStr.contains("200") {
                     self.stopPolling()
-                    self.statusMessage = "京东 APP 确认成功！正在换取 WSKey..."
+                    self.statusMessage = "京东 APP 确认成功！正在完成凭证兑换..."
                     
-                    // 解析 Ticket 换取 WSKey
                     if let ticket = self.extractTicket(from: resStr) {
                         self.validateTicket(ticket)
                     } else {
@@ -122,7 +103,6 @@ class QRCodeWSKeyManager: ObservableObject {
     }
     
     private func extractTicket(from str: String) -> String? {
-        // 使用正则提取 ticket
         let pattern = "\"ticket\"\\s*:\\s*\"([^\"]+)\""
         if let regex = try? NSRegularExpression(pattern: pattern, options: []) {
             let nsString = str as NSString
@@ -145,12 +125,7 @@ class QRCodeWSKeyManager: ObservableObject {
         URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
             guard let self = self, let httpResponse = response as? HTTPURLResponse else { return }
             
-            if let fields = httpResponse.allHeaderFields as? [String: String] {
-                let cookies = HTTPCookie.cookies(withResponseHeaderFields: fields, for: url)
-                for c in cookies {
-                    self.cookiesDict[c.name] = c.value
-                }
-            }
+            self.extractCookiesFromResponse(httpResponse, url: url)
             
             DispatchQueue.main.async {
                 self.parseAndEmitCookies()
@@ -158,10 +133,51 @@ class QRCodeWSKeyManager: ObservableObject {
         }.resume()
     }
     
+    private func extractCookiesFromResponse(_ response: HTTPURLResponse, url: URL) {
+        if let fields = response.allHeaderFields as? [String: String] {
+            let cookies = HTTPCookie.cookies(withResponseHeaderFields: fields, for: url)
+            for c in cookies {
+                cookiesDict[c.name] = c.value
+                if c.name == "wtoken" || c.name == "qr_token" || c.name == "s_token" || c.name == "token" {
+                    self.token = c.value
+                }
+                if c.name == "okl_token" {
+                    self.oklToken = c.value
+                }
+            }
+            
+            // 手动文本搜刮 Set-Cookie 字符串，防止多 Header 被拆碎
+            for (key, value) in fields {
+                if key.lowercased() == "set-cookie" {
+                    parseRawCookieHeader(value)
+                }
+            }
+        }
+    }
+    
+    private func parseRawCookieHeader(_ headerStr: String) {
+        let items = headerStr.components(separatedBy: ",")
+        for item in items {
+            let parts = item.components(separatedBy: ";")
+            if let first = parts.first {
+                let kv = first.trimmingCharacters(in: .whitespaces).components(separatedBy: "=")
+                if kv.count >= 2 {
+                    let k = kv[0].trimmingCharacters(in: .whitespaces)
+                    let v = kv[1].trimmingCharacters(in: .whitespaces)
+                    if !k.isEmpty && !v.isEmpty {
+                        cookiesDict[k] = v
+                    }
+                }
+            }
+        }
+    }
+    
     private func parseAndEmitCookies() {
-        var wskey: String? = cookiesDict["wskey"]
-        var ptKey: String? = cookiesDict["pt_key"]
-        var pin: String? = cookiesDict["pin"] ?? cookiesDict["pt_pin"]
+        let fullCookieStr = cookiesDict.map { "\($0.key)=\($0.value)" }.joined(separator: "; ")
+        
+        var wskey = findCookieValue(name: "wskey", in: fullCookieStr)
+        var ptKey = findCookieValue(name: "pt_key", in: fullCookieStr)
+        var pin = findCookieValue(name: "pt_pin", in: fullCookieStr) ?? findCookieValue(name: "pin", in: fullCookieStr)
         
         if let w = wskey, let p = pin, !w.isEmpty, !p.isEmpty {
             let res = "pin=\(p);wskey=\(w);"
@@ -181,7 +197,18 @@ class QRCodeWSKeyManager: ObservableObject {
             return
         }
         
-        self.statusMessage = "登录成功，但未识别到 WSKey，请重试"
+        self.statusMessage = "未匹配到完整凭证，正在尝试二次提取..."
+    }
+    
+    private func findCookieValue(name: String, in str: String) -> String? {
+        let pattern = "(?:^|;\\s*|\\s+)" + name + "=([^;]+)"
+        if let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive) {
+            let nsStr = str as NSString
+            if let match = regex.firstMatch(in: str, options: [], range: NSRange(location: 0, length: nsStr.length)) {
+                return nsStr.substring(with: match.range(at: 1)).trimmingCharacters(in: .whitespaces)
+            }
+        }
+        return cookiesDict[name]
     }
     
     deinit {
