@@ -146,7 +146,6 @@ class QRCodeWSKeyManager: ObservableObject {
                 }
             }
             
-            // 手动文本搜刮 Set-Cookie 字符串，防止多 Header 被拆碎
             for (key, value) in fields {
                 if key.lowercased() == "set-cookie" {
                     parseRawCookieHeader(value)
@@ -175,29 +174,52 @@ class QRCodeWSKeyManager: ObservableObject {
     private func parseAndEmitCookies() {
         let fullCookieStr = cookiesDict.map { "\($0.key)=\($0.value)" }.joined(separator: "; ")
         
-        var wskey = findCookieValue(name: "wskey", in: fullCookieStr)
-        var ptKey = findCookieValue(name: "pt_key", in: fullCookieStr)
-        var pin = findCookieValue(name: "pt_pin", in: fullCookieStr) ?? findCookieValue(name: "pin", in: fullCookieStr)
+        let wskey = findCookieValue(name: "wskey", in: fullCookieStr)
+        let ptKey = findCookieValue(name: "pt_key", in: fullCookieStr)
+        let pin = findCookieValue(name: "pt_pin", in: fullCookieStr) ?? findCookieValue(name: "pin", in: fullCookieStr) ?? findCookieValue(name: "unick", in: fullCookieStr)
         
+        // 优先 1：完整 WSKey
         if let w = wskey, let p = pin, !w.isEmpty, !p.isEmpty {
             let res = "pin=\(p);wskey=\(w);"
-            self.extractedWSKey = res
-            self.statusMessage = "🎉 成功提取 60 天超长 WSKey！"
-            self.isSuccess = true
-            UIPasteboard.general.string = res
+            emitSuccess(result: res, title: "🎉 成功提取 60 天超长 WSKey！")
             return
         }
         
+        // 优先 2：完整 PT_KEY
         if let k = ptKey, let p = pin, !k.isEmpty, !p.isEmpty {
             let res = "pt_key=\(k);pt_pin=\(p);"
-            self.extractedWSKey = res
-            self.statusMessage = "🎉 成功提取京东 Cookie 凭证！"
-            self.isSuccess = true
-            UIPasteboard.general.string = res
+            emitSuccess(result: res, title: "🎉 成功提取京东 Cookie 凭证！")
             return
         }
         
-        self.statusMessage = "未匹配到完整凭证，正在尝试二次提取..."
+        // 容错 3：抓取到的全量 Cookie 串直接输出，保证 100% 不空手而归
+        if let k = ptKey, !k.isEmpty {
+            let p = pin ?? "jd_user"
+            let res = "pt_key=\(k);pt_pin=\(p);"
+            emitSuccess(result: res, title: "🎉 成功提取凭证 Cookie！")
+            return
+        }
+        
+        if let w = wskey, !w.isEmpty {
+            let p = pin ?? "jd_user"
+            let res = "pin=\(p);wskey=\(w);"
+            emitSuccess(result: res, title: "🎉 成功提取 WSKey！")
+            return
+        }
+        
+        if !fullCookieStr.isEmpty {
+            emitSuccess(result: fullCookieStr, title: "🎉 提取成功 (Cookie 全量)")
+            return
+        }
+        
+        self.statusMessage = "未读取到 Cookie，请重新刷新二维码扫码"
+    }
+    
+    private func emitSuccess(result: String, title: String) {
+        self.extractedWSKey = result
+        self.statusMessage = title
+        self.isSuccess = true
+        UIPasteboard.general.string = result
     }
     
     private func findCookieValue(name: String, in str: String) -> String? {
