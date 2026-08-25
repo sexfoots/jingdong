@@ -21,10 +21,11 @@ jobs:
           xcodebuild -project JDWSKeyGrabber.xcodeproj \
                      -scheme JDWSKeyGrabber \
                      -configuration Release \
-                     -sdk iphoneos \
+                     -destination 'generic/platform=iOS' \
                      CODE_SIGNING_ALLOWED=NO \
                      CODE_SIGNING_REQUIRED=NO \
                      CODE_SIGN_IDENTITY="" \
+                     CONFIGURATION_BUILD_DIR=build/Release-iphoneos \
                      clean build
 
       - name: 打包成 TrollStore 可用的 .ipa 文件
