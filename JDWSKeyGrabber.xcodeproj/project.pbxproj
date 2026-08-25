@@ -1,0 +1,253 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 54;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		9B00100129F0000100000001 /* AppMain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B00100029F0000100000001 /* AppMain.swift */; };
+		9B00100329F0000100000002 /* AccountManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B00100229F0000100000002 /* AccountManager.swift */; };
+		9B00100529F0000100000003 /* LoginViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B00100429F0000100000003 /* LoginViewController.swift */; };
+		9B00100729F0000100000004 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B00100629F0000100000004 /* ContentView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		9B000FFF29F0000100000000 /* JDWSKeyGrabber.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = JDWSKeyGrabber.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		9B00100029F0000100000001 /* AppMain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppMain.swift; sourceTree = "<group>"; };
+		9B00100229F0000100000002 /* AccountManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountManager.swift; sourceTree = "<group>"; };
+		9B00100429F0000100000003 /* LoginViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginViewController.swift; sourceTree = "<group>"; };
+		9B00100629F0000100000004 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		9B00100829F0000100000005 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		9B000FFC29F0000100000000 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		9B000FF429F0000100000000 = {
+			isa = PBXGroup;
+			children = (
+				9B000FFE29F0000100000000 /* JDWSKeyGrabber */,
+				9B000FFF29F0000100000000 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		9B000FFE29F0000100000000 /* JDWSKeyGrabber */ = {
+			isa = PBXGroup;
+			children = (
+				9B00100029F0000100000001 /* AppMain.swift */,
+				9B00100829F0000100000005 /* Info.plist */,
+				9B00100929F0000100000006 /* Storage */,
+				9B00100A29F0000100000007 /* Views */,
+			);
+			path = JDWSKeyGrabber;
+			sourceTree = "<group>";
+		};
+		9B00100929F0000100000006 /* Storage */ = {
+			isa = PBXGroup;
+			children = (
+				9B00100229F0000100000002 /* AccountManager.swift */,
+			);
+			path = Storage;
+			sourceTree = "<group>";
+		};
+		9B00100A29F0000100000007 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				9B00100429F0000100000003 /* LoginViewController.swift */,
+				9B00100629F0000100000004 /* ContentView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		9B000FFF29F0000100000000 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				9B000FFF29F0000100000000 /* JDWSKeyGrabber.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		9B000FFE29F0000100000001 /* JDWSKeyGrabber */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9B00100B29F0000100000008 /* Build configuration list for PBXNativeTarget "JDWSKeyGrabber" */;
+			buildPhases = (
+				9B000FFB29F0000100000000 /* Sources */,
+				9B000FFC29F0000100000000 /* Frameworks */,
+				9B000FFD29F0000100000000 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = JDWSKeyGrabber;
+			productName = JDWSKeyGrabber;
+			productReference = 9B000FFF29F0000100000000 /* JDWSKeyGrabber.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		9B000FF529F0000100000000 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1420;
+				LastUpgradeCheck = 1420;
+				TargetAttributes = {
+					9B000FFE29F0000100000001 = {
+						CreatedOnToolsVersion = 14.2;
+					};
+				};
+			};
+			buildConfigurationList = 9B000FF829F0000100000000 /* Build configuration list for PBXProject "JDWSKeyGrabber" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = zh_CN;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+				zh_CN,
+			);
+			mainGroup = 9B000FF429F0000100000000;
+			productRefGroup = 9B000FFF29F0000100000000 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				9B000FFE29F0000100000001 /* JDWSKeyGrabber */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		9B000FFD29F0000100000000 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		9B000FFB29F0000100000000 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9B00100129F0000100000001 /* AppMain.swift in Sources */,
+				9B00100329F0000100000002 /* AccountManager.swift in Sources */,
+				9B00100529F0000100000003 /* LoginViewController.swift in Sources */,
+				9B00100729F0000100000004 /* ContentView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		9B00100C29F0000100000009 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGN_IDENTITY = "";
+				DEVELOPMENT_TEAM = "";
+				ENABLE_BITCODE = NO;
+				INFOPLIST_FILE = JDWSKeyGrabber/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jdwskey.grabber;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		9B00100D29F000010000000A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGN_IDENTITY = "";
+				DEVELOPMENT_TEAM = "";
+				ENABLE_BITCODE = NO;
+				INFOPLIST_FILE = JDWSKeyGrabber/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jdwskey.grabber;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		9B00100E29F000010000000B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				INFOPLIST_FILE = JDWSKeyGrabber/Info.plist;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jdwskey.grabber;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		9B00100F29F000010000000C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				INFOPLIST_FILE = JDWSKeyGrabber/Info.plist;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jdwskey.grabber;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		9B000FF829F0000100000000 /* Build configuration list for PBXProject "JDWSKeyGrabber" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9B00100C29F0000100000009 /* Debug */,
+				9B00100D29F000010000000A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9B00100B29F0000100000008 /* Build configuration list for PBXNativeTarget "JDWSKeyGrabber" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9B00100E29F000010000000B /* Debug */,
+				9B00100F29F000010000000C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 9B000FF529F0000100000000 /* Project object */;
+}

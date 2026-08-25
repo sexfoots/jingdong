@@ -1,0 +1,41 @@
+name: 构建 iOS IPA 免签安装包 (适用 TrollStore 巨魔商店)
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-ipa:
+    runs-on: macos-latest
+
+    steps:
+      - name: 检出项目源码
+        uses: actions/checkout@v3
+
+      - name: 选择 Xcode 版本
+        run: sudo xcode-select -switch /Applications/Xcode_14.3.1.app
+
+      - name: 编译构建 Xcode 项目 (.app)
+        run: |
+          xcodebuild -project JDWSKeyGrabber.xcodeproj \
+                     -scheme JDWSKeyGrabber \
+                     -configuration Release \
+                     -sdk iphoneos \
+                     CODE_SIGNING_ALLOWED=NO \
+                     CODE_SIGNING_REQUIRED=NO \
+                     CODE_SIGN_IDENTITY="" \
+                     clean build
+
+      - name: 打包成 TrollStore 可用的 .ipa 文件
+        run: |
+          mkdir -p Payload
+          cp -r build/Release-iphoneos/JDWSKeyGrabber.app Payload/
+          zip -r JDWSKeyGrabber.ipa Payload
+          echo "IPA 打包成功！"
+
+      - name: 上传构建产物至 GitHub Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: JDWSKeyGrabber-TrollStore-IPA
+          path: JDWSKeyGrabber.ipa
