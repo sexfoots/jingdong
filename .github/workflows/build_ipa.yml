@@ -13,8 +13,8 @@ jobs:
       - name: 检出项目源码
         uses: actions/checkout@v3
 
-      - name: 选择 Xcode 版本
-        run: sudo xcode-select -switch /Applications/Xcode_14.3.1.app
+      - name: 查看环境 Xcode 版本
+        run: xcodebuild -version
 
       - name: 编译构建 Xcode 项目 (.app)
         run: |
