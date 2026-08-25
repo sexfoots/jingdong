@@ -18,11 +18,9 @@ class LoginViewController: UIViewController, WKNavigationDelegate, WKHTTPCookieS
     
     private let LOGIN_URL = "https://plogin.m.jd.com/login/login?appid=300&returnurl=https://m.jd.com/&source=wq_passport"
     
-    private let userAgents = [
-        "Mozilla/5.0 (iPhone; CPU iPhone OS 16_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Mobile/15E148 Safari/604.1",
-        "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
-        "Mozilla/5.0 (iPhone; CPU iPhone OS 16_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.2 Mobile/15E148 Safari/604.1"
-    ]
+    private var extractedPin: String?
+    private var extractedWSKey: String?
+    private var extractedPtKey: String?
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -32,7 +30,7 @@ class LoginViewController: UIViewController, WKNavigationDelegate, WKHTTPCookieS
         setupProgressView()
         setupWebView()
         
-        clearDataAndLoad()
+        loadLoginPage()
     }
     
     private func setupTopBar() {
@@ -42,7 +40,7 @@ class LoginViewController: UIViewController, WKNavigationDelegate, WKHTTPCookieS
         view.addSubview(topControlBar)
         
         btnFillPhone = UIButton(type: .system)
-        btnFillPhone.setTitle("📱 填入手机号", for: .normal)
+        btnFillPhone.setTitle("📱 复制手机号", for: .normal)
         btnFillPhone.setTitleColor(.white, for: .normal)
         btnFillPhone.backgroundColor = .systemOrange
         btnFillPhone.layer.cornerRadius = 8
@@ -95,12 +93,14 @@ class LoginViewController: UIViewController, WKNavigationDelegate, WKHTTPCookieS
     
     private func setupWebView() {
         let config = WKWebViewConfiguration()
-        let store = WKWebsiteDataStore.nonPersistent()
-        config.websiteDataStore = store
+        let pref = WKPreferences()
+        pref.javaScriptEnabled = true
+        pref.javaScriptCanOpenWindowsAutomatically = true
+        config.preferences = pref
         
         webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = self
-        webView.customUserAgent = userAgents.randomElement()
+        webView.customUserAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 16_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Mobile/15E148 Safari/604.1"
         webView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(webView)
         
@@ -111,15 +111,18 @@ class LoginViewController: UIViewController, WKNavigationDelegate, WKHTTPCookieS
             webView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
         
-        // 观察 KVO 进度与 Cookie
         webView.addObserver(self, forKeyPath: #keyPath(WKWebView.estimatedProgress), options: .new, context: nil)
-        store.httpCookieStore.add(self)
+        WKWebsiteDataStore.default().httpCookieStore.add(self)
     }
     
-    private func clearDataAndLoad() {
+    private func loadLoginPage() {
         WKWebsiteDataStore.default().removeData(ofTypes: WKWebsiteDataStore.allWebsiteDataTypes(), modifiedSince: Date(timeIntervalSince1970: 0)) { [weak self] in
-            guard let self = self, let url = URL(string: self.LOGIN_URL) else { return }
-            self.webView.load(URLRequest(url: url))
+            DispatchQueue.main.async {
+                guard let self = self, let url = URL(string: self.LOGIN_URL) else { return }
+                var req = URLRequest(url: url)
+                req.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
+                self.webView.load(req)
+            }
         }
     }
     
@@ -127,17 +130,37 @@ class LoginViewController: UIViewController, WKNavigationDelegate, WKHTTPCookieS
         if keyPath == "estimatedProgress" {
             progressView.progress = Float(webView.estimatedProgress)
             progressView.isHidden = webView.estimatedProgress >= 1.0
-            
-            if webView.estimatedProgress > 0.6 {
-                injectPhoneNumber()
-            }
         }
     }
     
-    // MARK: - WKNavigationDelegate
-    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        injectPhoneNumber()
+    // MARK: - WKNavigationDelegate 拦截 HTTP 响应头中的 Set-Cookie (兼容 HTTPOnly)
+    func webView(_ webView: WKWebView, decidePolicyFor navigationResponse: WKNavigationResponse, decisionHandler: @escaping (WKNavigationResponsePolicy) -> Void) {
+        if let httpResponse = navigationResponse.response as? HTTPURLResponse,
+           let url = httpResponse.url, url.host?.contains("jd.com") == true {
+            
+            let headers = httpResponse.allHeaderFields
+            for (key, value) in headers {
+                let keyStr = String(describing: key).lowercased()
+                if keyStr == "set-cookie" {
+                    let cookieStr = String(describing: value)
+                    parseCookieString(cookieStr)
+                }
+            }
+        }
         checkCookies()
+        decisionHandler(.allow)
+    }
+    
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        checkCookies()
+        
+        // 尝试通过 document.cookie 获取
+        webView.evaluateJavaScript("document.cookie") { [weak self] result, _ in
+            if let cookieStr = result as? String {
+                self?.parseCookieString(cookieStr)
+                self?.checkCookies()
+            }
+        }
     }
     
     // MARK: - WKHTTPCookieStoreObserver
@@ -146,48 +169,26 @@ class LoginViewController: UIViewController, WKNavigationDelegate, WKHTTPCookieS
     }
     
     @objc private func manualFillPhone() {
-        guard let phone = targetPhone else { return }
+        guard let phone = targetPhone, !phone.isEmpty else {
+            showToast(message: "未接收到待填入的手机号")
+            return
+        }
         UIPasteboard.general.string = phone
-        
-        injectPhoneNumber()
-        showToast(message: "已触发自动填号 (已复制手机号到剪贴板)")
+        showToast(message: "手机号已复制！在输入框点击【粘贴】即可填入")
     }
     
-    /**
-     * 完全移植 Android 版经过充分测试证明完美的 JS 算法：
-     * 直读 placeholder，凡是提示文字里带有“码”或“code”的输入框，直接强行清空置为空白！
-     * 对手机号框保留填入。
-     */
-    private func injectPhoneNumber() {
-        guard let phone = targetPhone else { return }
-        let js = """
-            (function(val) {
-                if (!val) return;
-                var inputs = document.querySelectorAll('input');
-                for (var i = 0; i < inputs.length; i++) {
-                    var inp = inputs[i];
-                    var type = (inp.getAttribute('type') || '').toLowerCase();
-                    var placeholder = (inp.getAttribute('placeholder') || '');
-                    
-                    if (placeholder.indexOf('码') !== -1 || placeholder.toLowerCase().indexOf('code') !== -1) {
-                        inp.value = '';
-                        inp.dispatchEvent(new Event('input', { bubbles: true }));
-                        inp.dispatchEvent(new Event('change', { bubbles: true }));
-                        continue;
-                    }
-                    
-                    if (type === 'tel' || type === 'number' || placeholder.indexOf('手机号') !== -1) {
-                        inp.focus();
-                        inp.value = val;
-                        inp.dispatchEvent(new Event('input', { bubbles: true }));
-                        inp.dispatchEvent(new Event('change', { bubbles: true }));
-                        inp.dispatchEvent(new Event('blur', { bubbles: true }));
-                    }
-                }
-            })('\(phone)');
-        """
-        
-        webView.evaluateJavaScript(js, completionHandler: nil)
+    private func parseCookieString(_ str: String) {
+        let pairs = str.components(separatedBy: ";")
+        for pair in pairs {
+            let kv = pair.trimmingCharacters(in: .whitespaces).components(separatedBy: "=")
+            if kv.count >= 2 {
+                let k = kv[0].trimmingCharacters(in: .whitespaces)
+                let v = kv[1].trimmingCharacters(in: .whitespaces)
+                if k == "wskey" { extractedWSKey = v }
+                if k == "pt_key" { extractedPtKey = v }
+                if k == "pin" || k == "pt_pin" { extractedPin = v }
+            }
+        }
     }
     
     @objc private func forceExtractAndFinish() {
@@ -195,36 +196,44 @@ class LoginViewController: UIViewController, WKNavigationDelegate, WKHTTPCookieS
     }
     
     private func checkCookies(force: Bool = false) {
-        webView.configuration.websiteDataStore.httpCookieStore.getAllCookies { [weak self] cookies in
+        // 先检查内部存储解析到的凭证
+        if tryEmitResult() { return }
+        
+        // 尝试全量 Cookie 检索
+        WKWebsiteDataStore.default().httpCookieStore.getAllCookies { [weak self] cookies in
             guard let self = self else { return }
-            var wskey: String?
-            var ptKey: String?
-            var pin: String?
             
             for cookie in cookies {
-                if cookie.name == "wskey" { wskey = cookie.value }
-                if cookie.name == "pt_key" { ptKey = cookie.value }
-                if cookie.name == "pin" || cookie.name == "pt_pin" { pin = cookie.value }
+                if cookie.name == "wskey" { self.extractedWSKey = cookie.value }
+                if cookie.name == "pt_key" { self.extractedPtKey = cookie.value }
+                if cookie.name == "pin" || cookie.name == "pt_pin" { self.extractedPin = cookie.value }
             }
             
-            if let w = wskey, let p = pin {
-                let res = "pin=\(p);wskey=\(w);"
-                self.delegate?.didExtractWSKey(res)
-                self.dismiss(animated: true, completion: nil)
-                return
-            }
-            
-            if let k = ptKey, let p = pin {
-                let res = "pt_key=\(k);pt_pin=\(p);"
-                self.delegate?.didExtractWSKey(res)
-                self.dismiss(animated: true, completion: nil)
-                return
-            }
+            if self.tryEmitResult() { return }
             
             if force {
                 self.showToast(message: "未检测到已登录 Cookie，请先在页面中完成登录！")
             }
         }
+    }
+    
+    @discardableResult
+    private func tryEmitResult() -> Bool {
+        if let w = extractedWSKey, let p = extractedPin, !w.isEmpty, !p.isEmpty {
+            let res = "pin=\(p);wskey=\(w);"
+            delegate?.didExtractWSKey(res)
+            dismiss(animated: true, completion: nil)
+            return true
+        }
+        
+        if let k = extractedPtKey, let p = extractedPin, !k.isEmpty, !p.isEmpty {
+            let res = "pt_key=\(k);pt_pin=\(p);"
+            delegate?.didExtractWSKey(res)
+            dismiss(animated: true, completion: nil)
+            return true
+        }
+        
+        return false
     }
     
     private func showToast(message: String) {
@@ -237,6 +246,6 @@ class LoginViewController: UIViewController, WKNavigationDelegate, WKHTTPCookieS
     
     deinit {
         webView.removeObserver(self, forKeyPath: #keyPath(WKWebView.estimatedProgress))
-        webView.configuration.websiteDataStore.httpCookieStore.remove(self)
+        WKWebsiteDataStore.default().httpCookieStore.remove(self)
     }
 }

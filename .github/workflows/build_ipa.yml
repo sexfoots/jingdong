@@ -13,25 +13,21 @@ jobs:
       - name: 检出项目源码
         uses: actions/checkout@v4
 
-      - name: 查看环境 Xcode 版本
-        run: xcodebuild -version
-
-      - name: 编译构建 Xcode 项目 (.app)
+      - name: 编译构建免签应用 (.app)
         run: |
           xcodebuild -project JDWSKeyGrabber.xcodeproj \
                      -scheme JDWSKeyGrabber \
+                     -sdk iphoneos \
                      -configuration Release \
-                     -destination 'generic/platform=iOS' \
-                     CODE_SIGNING_ALLOWED=NO \
-                     CODE_SIGNING_REQUIRED=NO \
                      CODE_SIGN_IDENTITY="" \
-                     CONFIGURATION_BUILD_DIR=build/Release-iphoneos \
+                     CODE_SIGNING_REQUIRED=NO \
+                     CODE_SIGNING_ALLOWED=NO \
                      clean build
 
       - name: 打包成 TrollStore 可用的 .ipa 文件
         run: |
           mkdir -p Payload
-          cp -r build/Release-iphoneos/JDWSKeyGrabber.app Payload/
+          cp -r build/Release-iphoneos/JDWSKeyGrabber.app Payload/ || cp -r ~/Library/Developer/Xcode/DerivedData/JDWSKeyGrabber-*/Build/Products/Release-iphoneos/JDWSKeyGrabber.app Payload/
           zip -r JDWSKeyGrabber.ipa Payload
           echo "IPA 打包成功！"
 

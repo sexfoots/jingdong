@@ -1,7 +1,12 @@
 import SwiftUI
 
+struct AccountSheetItem: Identifiable {
+    let id: String
+    let phone: String
+}
+
 struct LoginViewWrapper: UIViewControllerRepresentable {
-    var phone: String?
+    var phone: String
     var onExtracted: (String) -> Void
     
     func makeUIViewController(context: Context) -> LoginViewController {
@@ -33,8 +38,8 @@ struct LoginViewWrapper: UIViewControllerRepresentable {
 struct ContentView: View {
     @StateObject private var accountMgr = AccountManager.shared
     @State private var inputPhone: String = ""
-    @State private var selectedPhone: String? = nil
-    @State private var showLoginView: Bool = false
+    @State private var activeSheetItem: AccountSheetItem? = nil
+    @State private var showQRCodeSheet: Bool = false
     
     @State private var extractedWSKey: String? = nil
     @State private var showResultAlert: Bool = false
@@ -43,9 +48,37 @@ struct ContentView: View {
         NavigationView {
             VStack(spacing: 16) {
                 
+                // 顶部最强功能推荐：扫码直取 WSKey
+                Button(action: {
+                    showQRCodeSheet = true
+                }) {
+                    HStack {
+                        Image(systemName: "qrcode.viewfinder")
+                            .font(.system(size: 24))
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("🔥 京东 APP 扫码直取 WSKey")
+                                .font(.system(size: 16, weight: .bold))
+                            Text("无需手机号验证码，扫码直接提取 60 天超长凭证")
+                                .font(.system(size: 11))
+                                .opacity(0.9)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                    }
+                    .foregroundColor(.white)
+                    .padding()
+                    .background(
+                        LinearGradient(gradient: Gradient(colors: [Color.purple, Color.blue]), startPoint: .leading, endPoint: .trailing)
+                    )
+                    .cornerRadius(14)
+                    .shadow(color: Color.purple.opacity(0.3), radius: 6, x: 0, y: 3)
+                }
+                .padding(.horizontal)
+                .padding(.top, 8)
+                
                 // 输入保存区域
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("保存常用京东账号")
+                    Text("保存常用京东账号 (H5模式)")
                         .font(.headline)
                         .foregroundColor(.secondary)
                     
@@ -59,7 +92,7 @@ struct ContentView: View {
                             inputPhone = ""
                         }) {
                             Text("保存")
-                                .bold()
+                                .font(.system(size: 14, weight: .bold))
                                 .foregroundColor(.white)
                                 .padding(.horizontal, 16)
                                 .padding(.vertical, 8)
@@ -82,20 +115,19 @@ struct ContentView: View {
                             .foregroundColor(.gray)
                         Text("暂无保存的账号")
                             .foregroundColor(.gray)
-                        Text("在上方输入手机号保存后，即可一键自动填写登录")
+                        Text("在上方输入手机号保存，或直接点击顶部扫码直取 WSKey")
                             .font(.caption)
                             .foregroundColor(.gray)
                     }
                     Spacer()
                 } else {
                     List {
-                        Section(header: Text("已保存账号列表 (点击一键登录)")) {
+                        Section(header: Text("已保存账号列表 (H5登录模式)")) {
                             ForEach(accountMgr.accounts) { acc in
                                 HStack {
                                     VStack(alignment: .leading, spacing: 4) {
                                         Text(acc.phone)
-                                            .font(.title3)
-                                            .bold()
+                                            .font(.system(size: 18, weight: .bold))
                                         Text("快捷填充并提取 Cookie")
                                             .font(.caption)
                                             .foregroundColor(.gray)
@@ -104,15 +136,13 @@ struct ContentView: View {
                                     Spacer()
                                     
                                     Button(action: {
-                                        selectedPhone = acc.phone
-                                        showLoginView = true
+                                        activeSheetItem = AccountSheetItem(id: acc.phone, phone: acc.phone)
                                     }) {
                                         HStack {
                                             Image(systemName: "bolt.fill")
                                             Text("快捷登录")
                                         }
-                                        .font(.subheadline)
-                                        .bold()
+                                        .font(.system(size: 14, weight: .bold))
                                         .foregroundColor(.white)
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 6)
@@ -130,8 +160,15 @@ struct ContentView: View {
                 }
             }
             .navigationTitle("JD WSKey 提取器")
-            .sheet(isPresented: $showLoginView) {
-                LoginViewWrapper(phone: selectedPhone) { result in
+            .sheet(item: $activeSheetItem) { item in
+                LoginViewWrapper(phone: item.phone) { result in
+                    extractedWSKey = result
+                    UIPasteboard.general.string = result
+                    showResultAlert = true
+                }
+            }
+            .sheet(isPresented: $showQRCodeSheet) {
+                QRCodeLoginView { result in
                     extractedWSKey = result
                     UIPasteboard.general.string = result
                     showResultAlert = true
@@ -139,8 +176,8 @@ struct ContentView: View {
             }
             .alert(isPresented: $showResultAlert) {
                 Alert(
-                    title: Text("🎉 凭证提取成功！"),
-                    message: Text("已自动复制到剪贴板：\n\n\(extractedWSKey ?? "")"),
+                    title: Text("🎉 WSKey 提取成功！"),
+                    message: Text("已自动复制 60 天超长凭证到剪贴板：\n\n\(extractedWSKey ?? "")"),
                     dismissButton: .default(Text("确定"))
                 )
             }
